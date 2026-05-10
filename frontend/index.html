@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="RateCheck — AI-powered service pricing intelligence. Enter any service, get real price estimates from analogous market data.">
+  <title>RateCheck — AI Service Pricing Intelligence</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%236366f1'/><text y='.9em' x='50%' text-anchor='middle' font-size='60' font-weight='bold' fill='white'>RC</text></svg>">
+
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- HEADER -->
+    <header class="header">
+      <div class="header-inner">
+        <a href="#" class="logo">
+          <div class="logo-icon">RC</div>
+          <div class="logo-text">
+            <span class="logo-name">RateCheck</span>
+            <span class="logo-tagline">AI Pricing Intelligence</span>
+          </div>
+        </a>
+        <div class="header-actions">
+          <span id="groq-badge" class="api-badge inactive">Groq Off</span>
+          <span id="or-badge" class="api-badge inactive">OpenRouter Off</span>
+          <button id="open-settings" class="btn btn-ghost btn-sm" title="API Keys (⌘,)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            Settings
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-content">
+        <div class="hero-eyebrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+          </svg>
+          AI-Powered · Free Tier Available
+        </div>
+        <h1 class="hero-title">
+          Price any service with <span>AI reasoning</span>
+        </h1>
+        <p class="hero-subtitle">
+          Describe anything — a garage declutter, a custom portrait, a DJ for your wedding. RateCheck finds analogous market data and generates an honest estimate.
+        </p>
+      </div>
+    </section>
+
+    <!-- SEARCH -->
+    <section class="search-section">
+      <div class="search-container">
+        <form id="search-form" class="search-form" onsubmit="handleSearch(event)">
+          <div class="search-grid">
+            <div class="search-row">
+              <label class="search-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                ZIP Code
+              </label>
+              <div class="input-group">
+                <input type="text" id="zip-input" class="input zip-input" placeholder="77062" maxlength="5" autocomplete="postal-code">
+                <p class="search-hint">Optional — for regional price adjustment</p>
+              </div>
+            </div>
+            <div class="search-row">
+              <label class="search-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                What service?
+              </label>
+              <div class="input-group">
+                <textarea id="query-input" class="input" placeholder="de-clutter and organize a single car garage with no car, full of junk like a storage unit..." rows="2"></textarea>
+                <p class="search-hint">Describe what you need priced — be specific about size, scope, and conditions</p>
+              </div>
+            </div>
+          </div>
+          <div class="search-actions">
+            <button type="button" class="btn btn-ghost" onclick="$('query-input').value='';$('zip-input').value='';">Clear</button>
+            <button type="submit" class="btn btn-primary btn-lg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              Get Price Estimate
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- EXAMPLES -->
+    <section class="example-searches">
+      <p class="example-label">Try something unexpected:</p>
+      <div id="example-chips" class="example-chips"></div>
+    </section>
+
+    <!-- LOADING -->
+    <div id="loading-state" class="loading">
+      <div class="spinner"></div>
+      <p class="loading-text">Analyzing your request...</p>
+      <p class="loading-text-sub">Finding analogous services and reasoning from market data</p>
+      <div class="loading-pipeline">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        Routing through pricing intelligence pipeline
+      </div>
+    </div>
+
+    <!-- ERROR -->
+    <div id="error-state" class="error-state" style="display:none">
+      <div class="error-title">Search Error</div>
+      <div class="error-text"></div>
+    </div>
+
+    <!-- RESULTS -->
+    <section id="results-section" class="results-section">
+      <div id="results-container"></div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <p class="footer-disclaimer">
+        Price estimates are based on analogous market data and AI reasoning. Actual prices vary by location, provider experience, material quality, and job complexity. Always get written quotes before starting any work. Estimates are for planning purposes only.
+      </p>
+    </footer>
+
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">API Configuration</h2>
+        <button id="close-settings" class="modal-close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-field">
+          <label class="modal-label" for="groq-key-input">
+            Groq API Key
+            <span class="api-badge active" style="margin-left:0.5rem;font-size:0.65rem;vertical-align:middle">FREE · 30 req/min</span>
+          </label>
+          <input type="password" id="groq-key-input" class="input" placeholder="gsk_..." autocomplete="off">
+          <p class="modal-hint">
+            Free tier at <a href="https://console.groq.com" target="_blank">console.groq.com</a>.
+            Fast GPU-backed Llama 3.1. No credit card needed.
+          </p>
+        </div>
+        <div class="modal-field">
+          <label class="modal-label" for="or-key-input">
+            OpenRouter API Key
+            <span class="api-badge inactive" style="margin-left:0.5rem;font-size:0.65rem;vertical-align:middle">$0.001/search</span>
+          </label>
+          <input type="password" id="or-key-input" class="input" placeholder="sk-or-..." autocomplete="off">
+          <p class="modal-hint">
+            Optional backup at <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a>.
+            Use as fallback when Groq rate limit is hit, or for stronger model reasoning.
+            Set a budget cap to control spending.
+          </p>
+        </div>
+        <p class="modal-hint" style="margin-top:1rem">
+          <strong>Without API keys:</strong> RateCheck uses local keyword matching only — great for common trades services.
+          <strong>With Groq key:</strong> Full AI reasoning for any service description — finds analogues and generates educated estimates.
+        </p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
+        <button type="button" id="save-settings" class="btn btn-primary">Save &amp; Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    // Global helper for settings
+    function $(id) { return document.getElementById(id); }
+  </script>
+</body>
+</html>
