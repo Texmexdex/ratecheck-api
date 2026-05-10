@@ -1,0 +1,160 @@
+/**
+ * Groq LLM integration
+ * Free tier: 30 req/min, Llama 3.1/3.3 models
+ * API: https://console.groq.com
+ */
+
+const GROQ_BASE = 'https://api.groq.com/openai/v1';
+
+let apiKey = null;
+
+export function setApiKey(key) {
+  apiKey = key;
+}
+
+export function isConfigured() {
+  return !!apiKey;
+}
+
+const MODELS = {
+  fast: 'llama-3.1-8b-instant',   // Fastest, cheapest, good enough for most tasks
+  strong: 'llama-3.3-70b-versatile' // For complex reasoning tasks
+};
+
+/**
+ * Make a chat completion request to Groq
+ */
+export async function chat(messages, { model = MODELS.fast, temperature = 0.3, max_tokens = 1024 } = {}) {
+  if (!apiKey) throw new Error('Groq API key not configured');
+
+  const response = await fetch(`${GROQ_BASE}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      temperature,
+      max_tokens
+    })
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Groq API error ${response.status}: ${err}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+/**
+ * Find analogous services using Groq
+ * Given a user query, return services that are structurally similar
+ */
+export async function findAnalogousServices(query, catalog) {
+  const catalogSummary = Object.entries(catalog).map(([trade, data]) =>
+    `${trade}: ${data.services.map(s => s.name).join(', ')}`
+  ).join('\n');
+
+  const systemPrompt = `You are a service pricing expert. Given a user description of work they need or want to provide, identify which existing services from a catalog are structurally analogous (similar labor type, complexity, time, tools, and skill level).
+
+Return a JSON array of the 3-5 most analogous services, ranked by similarity. Each entry should include:
+- "trade": the trade category
+- "serviceName": the exact service name
+- "similarity": 0.0-1.0 score of how analogous this service is to the user's query
+- "reasoning": brief explanation of why this service is analogous
+
+Respond ONLY with valid JSON, no markdown, no explanation outside the JSON.`;
+
+  const userPrompt = `User query: "${query}"
+
+Available services:
+${catalogSummary}
+
+Identify the most analogous services from the catalog above.`;
+
+  const result = await chat([
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userPrompt }
+  ], { model: MODELS.fast, temperature: 0.2 });
+
+  try {
+    // Try to extract JSON from response (may have markdown fences)
+    let cleanResult = result.trim();
+    if (cleanResult.startsWith('```')) {
+      cleanResult = cleanResult.replace(/```(?:json)?\n?/g, '').trim();
+    }
+    return JSON.parse(cleanResult);
+  } catch {
+    // If parsing fails, return empty array
+    console.error('Failed to parse Groq response:', result.substring(0, 200));
+    return [];
+  }
+}
+
+/**
+ * Generate a price estimate using Groq reasoning
+ * For queries with no direct catalog match
+ */
+export async function generateEstimate(query, analogousServices, zipData) {
+  const serviceLines = analogousServices.map(s =>
+    `- ${s.trade} > ${s.serviceName}: similarity=${s.similarity.toFixed(2)}`
+  ).join('\n');
+
+  const systemPrompt = `You are a service pricing expert. Generate realistic price estimates for a service that has no direct market data.
+
+Based on the analogous services provided, generate a price range estimate.
+Respond ONLY with valid JSON (no markdown):
+{
+  "low": number (minimum price in dollars),
+  "high": number (maximum price in dollars),
+  "average": number (typical middle price),
+  "unit": "per job" or "per hour" or "per sqft" etc,
+  "confidence": "high" | "medium" | "low",
+  "reasoning": "2-3 sentence explanation of how you derived this estimate",
+  "analogies": ["list of 2-3 specific comparisons that informed the estimate"]
+}`;
+
+  const userPrompt = `Service to price: "${query}"
+
+Analogous services from catalog:
+${serviceLines}
+
+Regional context: ${zipData.city}, ${zipData.state} (cost index: ${zipData.costIndex}/100)
+
+Generate a realistic price range based on the analogous services. Consider:
+- Similarity scores (higher similarity = closer to that service's price)
+- Regional cost differences (cost index above 100 = more expensive area)
+- Any specific details in the query that might adjust the estimate up or down`;
+
+  const result = await chat([
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userPrompt }
+  ], { model: MODELS.fast, temperature: 0.3, max_tokens: 512 });
+
+  try {
+    let cleanResult = result.trim();
+    if (cleanResult.startsWith('```')) {
+      cleanResult = cleanResult.replace(/```(?:json)?\n?/g, '').trim();
+    }
+    return JSON.parse(cleanResult);
+  } catch {
+    console.error('Failed to parse estimate response:', result.substring(0, 200));
+    return null;
+  }
+}
+
+/**
+ * Estimate the cost to run this query (rough token calc)
+ */
+export function estimateCost(model, inputTokens, outputTokens = 200) {
+  const RATE_GROQ = {
+    'llama-3.1-8b-instant': { input: 0, output: 0 },     // Free!
+    'llama-3.3-70b-versatile': { input: 0.00059, output: 0.00079 } // per 1M tokens
+  };
+  const rates = RATE_GROQ[model] || { input: 0, output: 0 };
+  return (rates.input * inputTokens + rates.output * outputTokens) / 1e6;
+}
